@@ -15,12 +15,10 @@ def test_go_or_kill_mapping() -> None:
     assert go_or_kill("") == "-"
 
 
-def test_rank_sorts_by_score_desc_then_unscored_last(tmp_path: Path) -> None:
-    from tests.conftest import write_readme
-
-    write_readme(tmp_path / "001-low", title="Low", score=18, verdict="PIVOT", date="2026-01-01")
-    write_readme(tmp_path / "002-high", title="High", score=34, verdict="GO", date="2026-02-01")
-    write_readme(tmp_path / "003-blank", title="Blank", score=None, verdict="", date="2026-03-01")
+def test_rank_sorts_by_score_desc_then_unscored_last(tmp_path: Path, make_readme) -> None:
+    make_readme(tmp_path / "001-low", title="Low", score=18, verdict="PIVOT", date="2026-01-01")
+    make_readme(tmp_path / "002-high", title="High", score=34, verdict="GO", date="2026-02-01")
+    make_readme(tmp_path / "003-blank", title="Blank", score=None, verdict="", date="2026-03-01")
 
     ordered = rank(collect(tmp_path))
     assert [meta.title for meta in ordered] == ["High", "Low", "Blank"]

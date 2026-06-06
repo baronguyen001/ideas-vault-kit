@@ -25,11 +25,9 @@ def test_to_json_round_trips(seeded_vault: Path) -> None:
     assert payload[1]["score"] == 20
 
 
-def test_to_csv_has_header_and_blank_for_missing_score(tmp_path: Path) -> None:
-    from tests.conftest import write_readme
-
-    write_readme(tmp_path / "001-scored", title="Scored", score=30, verdict="GO", date="2026-01-01")
-    write_readme(tmp_path / "002-blank", title="Blank", score=None, verdict="", date="2026-02-01")
+def test_to_csv_has_header_and_blank_for_missing_score(tmp_path: Path, make_readme) -> None:
+    make_readme(tmp_path / "001-scored", title="Scored", score=30, verdict="GO", date="2026-01-01")
+    make_readme(tmp_path / "002-blank", title="Blank", score=None, verdict="", date="2026-02-01")
 
     reader = list(csv.DictReader(io.StringIO(to_csv(tmp_path))))
     assert reader[0]["title"] == "Scored"

@@ -31,6 +31,12 @@ def write_readme(folder: Path, *, title: str, score: int | None, verdict: str, d
 
 
 @pytest.fixture
+def make_readme():
+    """Expose the README writer so tests do not import the conftest module directly."""
+    return write_readme
+
+
+@pytest.fixture
 def seeded_vault(tmp_path: Path) -> Path:
     write_readme(tmp_path / "002-second", title="Second Idea", score=20, verdict="PIVOT", date="2026-02-01")
     write_readme(tmp_path / "001-first", title="First Idea", score=32, verdict="GO", date="2026-01-01")
