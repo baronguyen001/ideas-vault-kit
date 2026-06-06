@@ -115,4 +115,4 @@ INDEX.md row format:
 | NNN | Title | score/40 | VERDICT | YYYY-MM-DD | market_status |
 ```
 
-Works best with a search-grounded model. For Gemini-oriented LLM engineering patterns, see [gemini-agent-toolkit](https://github.com/barobaonguyen/gemini-agent-toolkit).
+Works best with a search-grounded model. For Gemini-oriented LLM engineering patterns, see [gemini-agent-toolkit](https://github.com/baronguyen001/gemini-agent-toolkit).

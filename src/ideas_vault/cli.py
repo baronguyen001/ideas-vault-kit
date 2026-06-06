@@ -5,11 +5,14 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from ideas_vault import __version__
 from ideas_vault import index as index_mod
+from ideas_vault.export import RENDERERS as EXPORT_RENDERERS
+from ideas_vault.export import export as export_vault
 from ideas_vault.frontmatter import IdeaMeta, parse, update_readme
 from ideas_vault.paths import resolve_vault
 from ideas_vault.scaffold import new_idea as scaffold_new_idea
@@ -21,6 +24,9 @@ from ideas_vault.scoring import (
     raw_total,
     verdict,
 )
+
+if TYPE_CHECKING:
+    from ideas_vault.gemini_score import ScoreSuggestion
 
 
 def _color_enabled() -> bool:
@@ -112,6 +118,47 @@ def _write_score(folder: Path, scorecard: Scorecard) -> None:
     update_readme(readme, meta)
 
 
+def _print_suggestion(suggestion: ScoreSuggestion) -> None:
+    scorecard = suggestion.scorecard()
+    final = verdict(scorecard)
+    click.echo("Suggested scores (advisory — read the detail files and edit before you commit):")
+    click.echo("")
+    click.echo("| Pillar | Suggested /10 | Rationale |")
+    click.echo("|---|---:|---|")
+    click.echo(f"| Feasibility | {suggestion.feasibility.score} | {suggestion.feasibility.rationale} |")
+    click.echo(f"| Competition | {suggestion.competition.score} | {suggestion.competition.rationale} |")
+    click.echo(f"| Scale | {suggestion.scale.score} | {suggestion.scale.rationale} |")
+    click.echo(f"| Founder-fit | {suggestion.founder_fit.score} | {suggestion.founder_fit.rationale} |")
+    click.echo(
+        f"| Market status | {suggestion.market_status} | "
+        f"{_signed(MARKET_MODIFIERS[suggestion.market_status])} modifier |"
+    )
+    if suggestion.notes:
+        click.echo(f"\nBiggest risk: {suggestion.notes}")
+    click.echo(f"\nSuggested verdict: {final.value} ({adjusted_total(scorecard)}/40)")
+    click.echo(
+        "\nReview, then commit your own numbers:\n"
+        "  ivault score --write <folder> --reindex "
+        f"--feasibility {suggestion.feasibility.score} --competition {suggestion.competition.score} "
+        f"--scale {suggestion.scale.score} --founder-fit {suggestion.founder_fit.score} "
+        f"--market {suggestion.market_status}"
+    )
+
+
+def _run_suggest(idea: str | None, model: str | None) -> None:
+    from ideas_vault import gemini_score
+
+    description = idea or click.prompt("Idea to score")
+    try:
+        suggestion = gemini_score.suggest(description, model=model)
+    except gemini_score.MissingApiKeyError:
+        click.echo("set GEMINI_API_KEY to enable")
+        return
+    except gemini_score.GeminiError as exc:
+        raise click.ClickException(str(exc)) from exc
+    _print_suggestion(suggestion)
+
+
 def _parse_date(value: str | None) -> date | None:
     if value is None:
         return None
@@ -176,6 +223,9 @@ def list_command(vault: Path | None, verdict_filter: str | None, min_score: int 
 
 
 @cli.command("score")
+@click.argument("idea", required=False)
+@click.option("--suggest", is_flag=True, help="Ask Gemini (BYO GEMINI_API_KEY) to suggest scores for IDEA.")
+@click.option("--model", default=None, help="Gemini model id used by --suggest.")
 @click.option("--write", "write_folder", type=click.Path(file_okay=False, path_type=Path), default=None)
 @click.option("--reindex", is_flag=True, help="Regenerate INDEX.md after --write.")
 @click.option("--market", type=click.Choice(list(MARKET_MODIFIERS)), default=None)
@@ -184,6 +234,9 @@ def list_command(vault: Path | None, verdict_filter: str | None, min_score: int 
 @click.option("--scale", type=click.IntRange(0, 10), default=None)
 @click.option("--founder-fit", "founder_fit", type=click.IntRange(0, 10), default=None)
 def score_command(
+    idea: str | None,
+    suggest: bool,
+    model: str | None,
     write_folder: Path | None,
     reindex: bool,
     market: str | None,
@@ -192,7 +245,11 @@ def score_command(
     scale: int | None,
     founder_fit: int | None,
 ) -> None:
-    """Score an idea interactively or from flags."""
+    """Score an idea interactively, from flags, or from an AI suggestion (--suggest)."""
+    if suggest:
+        _run_suggest(idea, model)
+        return
+
     feasibility = feasibility if feasibility is not None else click.prompt("Feasibility", type=click.IntRange(0, 10))
     competition = competition if competition is not None else click.prompt("Competition", type=click.IntRange(0, 10))
     scale = scale if scale is not None else click.prompt("Scale", type=click.IntRange(0, 10))
@@ -211,3 +268,38 @@ def score_command(
             click.echo(f"Regenerated {path}.")
         else:
             click.echo("Run `ivault index` to refresh INDEX.md.")
+
+
+@cli.command("export")
+@click.option("--format", "fmt", type=click.Choice(["csv", "json"]), default="json", show_default=True)
+@click.option("--output", "-o", "output", type=str, default=None, help="Output file, or - for stdout.")
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def export_command(fmt: str, output: str | None, vault: Path | None) -> None:
+    """Dump every idea (scores + verdict) in the vault to a CSV or JSON file."""
+    try:
+        resolved = resolve_vault(vault)
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if output == "-":
+        click.echo(EXPORT_RENDERERS[fmt](resolved), nl=False)
+        return
+    path = export_vault(resolved, fmt, output)
+    click.echo(str(path))
+
+
+@cli.command("rank")
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def rank_command(vault: Path | None) -> None:
+    """Print a leaderboard of every idea, sorted by adjusted /40, with a GO/KILL flag."""
+    try:
+        metas = index_mod.collect(resolve_vault(vault))
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo("| Rank | # | Title | Score /40 | Verdict | Flag |")
+    click.echo("|---:|---|---|---:|---|---|")
+    for position, meta in enumerate(index_mod.rank(metas), start=1):
+        number = meta.folder.split("-", 1)[0]
+        score = "" if meta.score is None else str(meta.score)
+        flag = index_mod.go_or_kill(meta.verdict)
+        click.echo(f"| {position} | {number} | {meta.title} | {score} | {meta.verdict} | {flag} |")

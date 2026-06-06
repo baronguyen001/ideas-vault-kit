@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ideas-vault-kit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Markdown idea vault with a 4-pillar scoring framework, tiny CLI, and provider-agnostic LLM prompt."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,11 +38,12 @@ dev = [
 
 [project.scripts]
 ivault = "ideas_vault.cli:cli"
+ideas-vault = "ideas_vault.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/barobaonguyen/ideas-vault-kit"
-Repository = "https://github.com/barobaonguyen/ideas-vault-kit"
-Issues = "https://github.com/barobaonguyen/ideas-vault-kit/issues"
+Homepage = "https://github.com/baronguyen001/ideas-vault-kit"
+Repository = "https://github.com/baronguyen001/ideas-vault-kit"
+Issues = "https://github.com/baronguyen001/ideas-vault-kit/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ideas_vault"]

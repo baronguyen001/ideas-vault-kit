@@ -3,7 +3,7 @@
 > A 4-pillar method to kill 9 of every 10 side-project ideas before you write a line of code. Markdown vault + a tiny CLI + a copy-paste LLM prompt.
 
 [![PyPI](https://img.shields.io/pypi/v/ideas-vault-kit.svg)](https://pypi.org/project/ideas-vault-kit/)
-[![CI](https://github.com/barobaonguyen/ideas-vault-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/barobaonguyen/ideas-vault-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/baronguyen001/ideas-vault-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/baronguyen001/ideas-vault-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
@@ -55,11 +55,35 @@ ivault score --feasibility 8 --competition 7 --scale 8 --founder-fit 9 --market 
 
 ivault index
 ivault list --verdict GO
+ivault rank                       # leaderboard sorted by /40 with a GO/KILL flag
+ivault export --format csv        # dump every idea's scores + verdict to a file
 ```
+
+`ivault` and `ideas-vault` are the same command; use whichever you prefer.
 
 LLM prompt:
 
-Do not want to research by hand? Paste [docs/prompt.md](docs/prompt.md) into Claude, Gemini, or GPT with your idea. It asks the model to research the market, fill the six files, score the pillars, and output an index row. The prompt is provider-agnostic and contains no SDK dependency. It works especially well with search-grounded models; for Gemini-oriented agent patterns, see [gemini-agent-toolkit](https://github.com/barobaonguyen/gemini-agent-toolkit).
+Do not want to research by hand? Paste [docs/prompt.md](docs/prompt.md) into Claude, Gemini, or GPT with your idea. It asks the model to research the market, fill the six files, score the pillars, and output an index row. The prompt is provider-agnostic and contains no SDK dependency. It works especially well with search-grounded models; for Gemini-oriented agent patterns, see [gemini-agent-toolkit](https://github.com/baronguyen001/gemini-agent-toolkit).
+
+## AI-Assisted Scoring (Optional)
+
+Stuck on a first guess? `ivault score "<idea>" --suggest` asks Gemini for a 0-10 score and a one-line rationale per pillar, plus a market-status guess. It is strictly advisory: it prints a table and the exact command to commit, but **you** still read the detail files and decide the numbers.
+
+```bash
+export GEMINI_API_KEY=...                  # bring your own key
+ivault score "AI receipt sorter for freelancers" --suggest
+ivault score "..." --suggest --model gemini-2.5-pro   # deeper analysis
+```
+
+This is opt-in and dependency-free: the CLI calls the Gemini REST API directly over the standard library, so the core install stays offline-first with no LLM SDK. With no key set, the command prints `set GEMINI_API_KEY to enable` and does nothing else.
+
+## Leaderboard And Export
+
+```bash
+ivault rank                                 # all ideas, highest /40 first, GO/KILL flag
+ivault export --format json                 # writes ideas-vault.json into the vault
+ivault export --format csv --output -       # stream CSV to stdout for a spreadsheet
+```
 
 ## Worked Example
 
@@ -89,7 +113,12 @@ Edit your founder profile once in [templates/04-founder-fit.md](templates/04-fou
 
 ## Bigger Toolkit
 
-This repo is intentionally small. The LLM prompt pairs with [gemini-agent-toolkit](https://github.com/barobaonguyen/gemini-agent-toolkit), and the `ideas-vault` workflow is planned for the upcoming `barobao-skills` pack.
+This repo is intentionally small and offline-first. It sits next to the rest of the toolkit:
+
+- [gemini-agent-toolkit](https://github.com/baronguyen001/gemini-agent-toolkit) — production patterns for Gemini-first Python agents (the LLM prompt and `--suggest` pair naturally with it).
+- [confluence-scanner](https://github.com/baronguyen001/confluence-scanner) and [wallet-cluster-detector](https://github.com/baronguyen001/wallet-cluster-detector) — worked applications of the same `scrape -> score -> AI -> alert` loop.
+- [ai-automation-skills](https://github.com/baronguyen001/ai-automation-skills) — free companion skills and learning material.
+- [Trawlkit](https://github.com/baronguyen001/Trawlkit) — the paid starter kit that wires a Playwright scraper, cost-controlled Gemini, Telegram alerts, scheduler, and a `tk` CLI into runnable bots when you want the full automation loop, not just this rubric.
 
 ## Contributing
 

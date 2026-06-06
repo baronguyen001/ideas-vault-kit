@@ -13,6 +13,23 @@ def _idea_number(folder: str) -> str:
     return match.group(1) if match else ""
 
 
+def go_or_kill(verdict_value: str) -> str:
+    """Collapse a verdict to a quick GO / KILL leaderboard flag (or a dash if unscored)."""
+    if verdict_value == "GO":
+        return "GO"
+    if verdict_value in {"PIVOT", "NO-GO"}:
+        return "KILL"
+    return "-"
+
+
+def rank(metas: list[IdeaMeta]) -> list[IdeaMeta]:
+    """Sort ideas by adjusted score, highest first; unscored ideas sink to the bottom."""
+    return sorted(
+        metas,
+        key=lambda meta: (meta.score is None, -(meta.score or 0), _idea_number(meta.folder)),
+    )
+
+
 def collect(vault: Path) -> list[IdeaMeta]:
     metas: list[IdeaMeta] = []
     for child in sorted(vault.iterdir(), key=lambda p: p.name):

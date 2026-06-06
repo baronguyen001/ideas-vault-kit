@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.0 - 2026-06-06
+
+- Added `ivault score "idea" --suggest`: an opt-in, bring-your-own-key Gemini helper that suggests 0-10 scores plus a one-line rationale per pillar. You still edit the numbers. It degrades gracefully when `GEMINI_API_KEY` is unset and adds no LLM SDK dependency (stdlib only).
+- Added `ivault export --format csv|json [--output FILE|-]`: dump every idea (scores + verdict + market status) from a vault to a file or stdout.
+- Added `ivault rank`: a leaderboard of all ideas sorted by adjusted `/40` with a quick GO/KILL flag.
+- Added an `ideas-vault` console-script alias for `ivault`.
+- Added tests for export, rank, and a mocked Gemini suggestion path.
+
 ## v0.1.0 - 2026-05-28
 
 - Added the 4-pillar idea scoring framework.
