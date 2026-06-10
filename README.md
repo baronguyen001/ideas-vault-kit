@@ -83,7 +83,38 @@ This is opt-in and dependency-free: the CLI calls the Gemini REST API directly o
 ivault rank                                 # all ideas, highest /40 first, GO/KILL flag
 ivault export --format json                 # writes ideas-vault.json into the vault
 ivault export --format csv --output -       # stream CSV to stdout for a spreadsheet
+ivault export --format obsidian --out vault/  # one note per idea + a ranked MOC, for Obsidian
+ivault report --html board.html             # self-contained HTML scorecard for a launch post
+ivault notion-sync                          # opt-in: push every idea into a Notion database
 ```
+
+### Obsidian Export
+
+```bash
+ivault export --format obsidian --out my-vault/obsidian
+```
+
+Writes one markdown note per idea with Dataview-compatible frontmatter (score, verdict, market status, GO/KILL flag), `[[wikilinks]]` between ideas that share a market status, and a generated **Ideas MOC** note that ranks every idea by adjusted `/40`. Drop the folder straight into an Obsidian vault — no plugin required; Dataview just makes the fields queryable.
+
+### HTML Leaderboard
+
+```bash
+ivault report --html board.html
+ivault report --html board.html --title "My 2026 Shortlist"
+```
+
+Renders a single self-contained `.html` scorecard: every idea as a score bar with a GO/KILL badge, ranked highest `/40` first, with clickable column headers. No JS dependency, no network — a good artifact to attach to a launch post or share with a co-founder.
+
+### Notion Sync (Optional)
+
+```bash
+pip install "ideas-vault-kit[notion]"       # adds the requests extra
+export NOTION_API_KEY=...                    # internal integration token
+export NOTION_DB=...                         # target database id
+ivault notion-sync
+```
+
+Opt-in and bring-your-own-key. It upserts each idea as a row in a Notion database (the four-pillar score, verdict, market status, and GO/KILL flag), keyed by the idea folder name so re-running updates rows in place instead of duplicating them. With no key set, the command prints `set NOTION_API_KEY + NOTION_DB to enable` and does nothing else, so the core install stays offline-first with no extra dependency. The target database needs a title property `Name` plus properties `Idea Key`, `Number`, `Verdict`, `Flag`, `Market Status`, `Date`, and `Score`. See [.env.example](.env.example).
 
 ## Worked Example
 
@@ -105,7 +136,7 @@ The contrast example is [iOS apps for local restaurants](examples/002-ios-restau
 
 ## Why Not a Notion Template?
 
-This is git-tracked, so you can diff how your thinking changed. It forces a number, so vague enthusiasm has to become evidence. It has an auto-downgrade, so one fatal flaw kills the idea instead of hiding inside a high total. It works offline, has no account, calls no network, and stores nothing outside your own markdown vault.
+This is git-tracked, so you can diff how your thinking changed. It forces a number, so vague enthusiasm has to become evidence. It has an auto-downgrade, so one fatal flaw kills the idea instead of hiding inside a high total. The default install works offline, has no account, calls no network, and stores nothing outside your own markdown vault. If you do live in Notion or Obsidian, the export adapters above push your scored ideas there on demand — without making the source of truth depend on a hosted account.
 
 ## Customize It
 

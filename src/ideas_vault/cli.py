@@ -271,15 +271,38 @@ def score_command(
 
 
 @cli.command("export")
-@click.option("--format", "fmt", type=click.Choice(["csv", "json"]), default="json", show_default=True)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["csv", "json", "obsidian"]),
+    default="json",
+    show_default=True,
+)
 @click.option("--output", "-o", "output", type=str, default=None, help="Output file, or - for stdout.")
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Output directory for --format obsidian (default <vault>/obsidian).",
+)
 @click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
-def export_command(fmt: str, output: str | None, vault: Path | None) -> None:
-    """Dump every idea (scores + verdict) in the vault to a CSV or JSON file."""
+def export_command(fmt: str, output: str | None, out_dir: Path | None, vault: Path | None) -> None:
+    """Dump every idea (scores + verdict) to CSV, JSON, or an Obsidian note folder."""
     try:
         resolved = resolve_vault(vault)
     except FileNotFoundError as exc:
         raise click.ClickException(str(exc)) from exc
+    if fmt == "obsidian":
+        if output == "-":
+            msg = "obsidian export writes a folder of notes; use --out, not --output -"
+            raise click.ClickException(msg)
+        from ideas_vault.obsidian import export_obsidian
+
+        target = out_dir if out_dir is not None else (Path(output) if output else None)
+        path = export_obsidian(resolved, target)
+        click.echo(str(path))
+        return
     if output == "-":
         click.echo(EXPORT_RENDERERS[fmt](resolved), nl=False)
         return
@@ -303,3 +326,50 @@ def rank_command(vault: Path | None) -> None:
         score = "" if meta.score is None else str(meta.score)
         flag = index_mod.go_or_kill(meta.verdict)
         click.echo(f"| {position} | {number} | {meta.title} | {score} | {meta.verdict} | {flag} |")
+
+
+@cli.command("report")
+@click.option("--html", "html_path", type=str, default=None, help="Output HTML file (default <vault>/ideas-vault.html).")
+@click.option("--title", default=None, help="Heading for the leaderboard page.")
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def report_command(html_path: str | None, title: str | None, vault: Path | None) -> None:
+    """Write a self-contained HTML leaderboard (4-pillar bars + GO/KILL badges)."""
+    from ideas_vault.report import report as render_html_report
+
+    try:
+        resolved = resolve_vault(vault)
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    path = render_html_report(resolved, html_path, title=title)
+    click.echo(str(path))
+
+
+@cli.command("notion-sync")
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def notion_sync_command(vault: Path | None) -> None:
+    """Upsert every idea into a Notion database (opt-in: BYO NOTION_API_KEY + NOTION_DB)."""
+    from ideas_vault import notion_sync
+
+    try:
+        resolved = resolve_vault(vault)
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    try:
+        results = notion_sync.sync(resolved)
+    except notion_sync.MissingConfigError:
+        click.echo(notion_sync.ENABLE_HINT)
+        return
+    except notion_sync.MissingRequestsError as exc:
+        click.echo(str(exc))
+        return
+    except notion_sync.NotionError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if not results:
+        click.echo("No ideas found to sync.")
+        return
+    for result in results:
+        click.echo(f"{result.action}: {result.idea_key} ({result.title})")
+    created = sum(1 for r in results if r.action == "created")
+    updated = len(results) - created
+    click.echo(f"Synced {len(results)} ideas to Notion ({created} created, {updated} updated).")

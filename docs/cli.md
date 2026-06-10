@@ -92,9 +92,32 @@ Prints a leaderboard of every idea, sorted by adjusted `/40` (highest first; uns
 ivault export --format json --vault my-ideas        # writes my-ideas/ideas-vault.json
 ivault export --format csv --output report.csv      # writes report.csv
 ivault export --format csv --output -                # streams CSV to stdout
+ivault export --format obsidian --out my-ideas/obsidian   # writes a folder of notes
 ```
 
-Dumps every idea's number, folder, title, score, verdict, market status, and date. Without `--output`, it writes `<vault>/ideas-vault.<format>` and prints the path. Use `--output -` to stream to stdout for piping into a spreadsheet or another tool.
+For `csv` and `json`, dumps every idea's number, folder, title, score, verdict, market status, and date. Without `--output`, it writes `<vault>/ideas-vault.<format>` and prints the path. Use `--output -` to stream to stdout for piping into a spreadsheet or another tool.
+
+For `obsidian`, writes a folder of markdown notes (default `<vault>/obsidian`, or set `--out`): one note per idea with Dataview-compatible frontmatter and `[[wikilinks]]` to ideas that share a market status, plus a generated `Ideas MOC.md` ranked by adjusted `/40`. `--output -` is rejected because the export is a folder, not a single stream.
+
+## `ivault report`
+
+```bash
+ivault report --html board.html --vault my-ideas
+ivault report --html board.html --title "My Shortlist"
+```
+
+Writes a self-contained HTML leaderboard (default `<vault>/ideas-vault.html`): every idea as a score bar with a GO/KILL badge, ranked highest `/40` first, with clickable column headers. Pure string templating — no JS dependency and no network call.
+
+## `ivault notion-sync`
+
+```bash
+pip install "ideas-vault-kit[notion]"
+export NOTION_API_KEY=...
+export NOTION_DB=...
+ivault notion-sync --vault my-ideas
+```
+
+Opt-in, bring-your-own-key. Upserts each idea into a Notion database as a row (score, verdict, market status, GO/KILL flag), keyed by the idea folder name so re-running updates rows in place. The key is read from `NOTION_API_KEY` and the database id from `NOTION_DB`. With either unset, it prints `set NOTION_API_KEY + NOTION_DB to enable` and exits cleanly; without the `requests` extra it prints an install hint. The target database needs a title property `Name` plus `Idea Key`, `Number`, `Verdict`, `Flag`, `Market Status`, `Date`, and `Score`.
 
 ## Frontmatter Schema
 
