@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ideas-vault-kit"
-version = "0.3.0"
+version = "0.4.0"
 description = "Markdown idea vault with a 4-pillar scoring framework, tiny CLI, and provider-agnostic LLM prompt."
 readme = "README.md"
 requires-python = ">=3.11"

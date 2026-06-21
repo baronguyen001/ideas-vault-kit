@@ -81,6 +81,8 @@ This is opt-in and dependency-free: the CLI calls the Gemini REST API directly o
 
 ```bash
 ivault rank                                 # all ideas, highest /40 first, GO/KILL flag
+ivault compare 001 004 007                  # side-by-side comparison of selected ideas
+ivault kill-list --threshold 15             # ideas below the kill line (archive/pivot shortlist)
 ivault export --format json                 # writes ideas-vault.json into the vault
 ivault export --format csv --output -       # stream CSV to stdout for a spreadsheet
 ivault export --format obsidian --out vault/  # one note per idea + a ranked MOC, for Obsidian

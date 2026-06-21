@@ -30,6 +30,73 @@ def rank(metas: list[IdeaMeta]) -> list[IdeaMeta]:
     )
 
 
+def select(metas: list[IdeaMeta], numbers: list[str]) -> list[IdeaMeta]:
+    """Pick ideas whose folder number matches ``numbers`` (preserving that order).
+
+    Numbers may be given as ``1`` or ``001``; unknown numbers are skipped.
+    """
+    by_number = {_idea_number(meta.folder): meta for meta in metas}
+    chosen: list[IdeaMeta] = []
+    for raw in numbers:
+        key = raw.zfill(3) if raw.isdigit() else raw
+        meta = by_number.get(key)
+        if meta is not None:
+            chosen.append(meta)
+    return chosen
+
+
+#: Default kill threshold on the adjusted /40 score (NO-GO band starts below 15).
+KILL_THRESHOLD = 15
+
+
+def kill_list(metas: list[IdeaMeta], threshold: int = KILL_THRESHOLD) -> list[IdeaMeta]:
+    """Scored ideas below ``threshold`` (worst first). Unscored ideas are excluded."""
+    killed = [meta for meta in metas if meta.score is not None and meta.score < threshold]
+    return sorted(killed, key=lambda meta: (meta.score or 0, _idea_number(meta.folder)))
+
+
+def render_comparison(metas: list[IdeaMeta]) -> str:
+    """Render a side-by-side comparison: attribute rows, one column per idea."""
+    if not metas:
+        return "No matching ideas to compare.\n"
+    headers = ["Attribute", *[f"#{_idea_number(m.folder)}" for m in metas]]
+    rows = [
+        ("Title", [m.title for m in metas]),
+        ("Score /40", ["" if m.score is None else str(m.score) for m in metas]),
+        ("Verdict", [m.verdict for m in metas]),
+        ("GO/KILL", [go_or_kill(m.verdict) for m in metas]),
+        ("Market", [m.market_status for m in metas]),
+        ("Date", [m.date for m in metas]),
+    ]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join(["---"] * len(headers)) + "|",
+    ]
+    for label, values in rows:
+        lines.append("| " + " | ".join([label, *values]) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def render_kill_list(metas: list[IdeaMeta], threshold: int = KILL_THRESHOLD) -> str:
+    """Render the kill-list (ideas below ``threshold``) as a Markdown report."""
+    killed = kill_list(metas, threshold)
+    lines = [
+        "# Kill list",
+        "",
+        f"Ideas scoring below {threshold}/40 - candidates to archive or pivot.",
+        "",
+        "| # | Title | Score /40 | Verdict | Folder |",
+        "|---|---|---:|---|---|",
+    ]
+    for meta in killed:
+        number = _idea_number(meta.folder)
+        lines.append(f"| {number} | {meta.title} | {meta.score} | {meta.verdict} | {meta.folder} |")
+    if not killed:
+        lines.append("| - | (none below threshold) | | | |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def collect(vault: Path) -> list[IdeaMeta]:
     metas: list[IdeaMeta] = []
     for child in sorted(vault.iterdir(), key=lambda p: p.name):

@@ -328,6 +328,40 @@ def rank_command(vault: Path | None) -> None:
         click.echo(f"| {position} | {number} | {meta.title} | {score} | {meta.verdict} | {flag} |")
 
 
+@cli.command("compare")
+@click.argument("numbers", nargs=-1, required=True)
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def compare_command(numbers: tuple[str, ...], vault: Path | None) -> None:
+    """Compare two or more ideas side by side (by their folder number)."""
+    try:
+        metas = index_mod.collect(resolve_vault(vault))
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    chosen = index_mod.select(metas, list(numbers))
+    if not chosen:
+        raise click.ClickException(f"no ideas matched: {', '.join(numbers)}")
+    click.echo(index_mod.render_comparison(chosen), nl=False)
+
+
+@cli.command("kill-list")
+@click.option("--threshold", type=int, default=index_mod.KILL_THRESHOLD, show_default=True)
+@click.option("--out", type=click.Path(dir_okay=False, path_type=Path), default=None,
+              help="Write the kill-list Markdown here instead of stdout.")
+@click.option("--vault", type=click.Path(file_okay=False, path_type=Path), default=None)
+def kill_list_command(threshold: int, out: Path | None, vault: Path | None) -> None:
+    """List ideas scoring below the kill threshold (archive/pivot candidates)."""
+    try:
+        metas = index_mod.collect(resolve_vault(vault))
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    text = index_mod.render_kill_list(metas, threshold)
+    if out is not None:
+        out.write_text(text, encoding="utf-8", newline="\n")
+        click.echo(str(out))
+    else:
+        click.echo(text, nl=False)
+
+
 @cli.command("report")
 @click.option("--html", "html_path", type=str, default=None, help="Output HTML file (default <vault>/ideas-vault.html).")
 @click.option("--title", default=None, help="Heading for the leaderboard page.")

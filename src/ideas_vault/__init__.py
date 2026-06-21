@@ -6,7 +6,7 @@ from ideas_vault.report import render_report, report
 from ideas_vault.scaffold import new_idea, next_number, slugify
 from ideas_vault.scoring import MARKET_MODIFIERS, Scorecard, Verdict, verdict
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Scorecard",

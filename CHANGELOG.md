@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4.0 - 2026-06-21
+
+- Added `ivault compare <numbers...>`: a side-by-side comparison of two or more
+  ideas (selected by folder number, `1` or `001`) — title, score `/40`, verdict,
+  GO/KILL flag, market status and date as a Markdown table, attributes down the
+  side and one column per idea.
+- Added `ivault kill-list [--threshold N] [--out FILE]`: lists the ideas scoring
+  below the kill threshold (default 15, the NO-GO band), worst first — the
+  archive/pivot shortlist. New API: `index.select`, `index.kill_list`,
+  `index.render_comparison`, `index.render_kill_list`.
+
 ## v0.3.0 - 2026-06-10
 
 - Added `ivault export --format obsidian [--out DIR]`: writes one markdown note per idea with Dataview-compatible frontmatter, `[[wikilinks]]` between ideas that share a market status, and a generated `Ideas MOC.md` ranked by adjusted `/40`. Drops straight into an Obsidian vault, no plugin required.
